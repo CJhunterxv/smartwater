@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Reset Password - SmartWater</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0b1226;
+            --bg-darker: #050816;
+            --accent: #22d3ee;
+            --accent-rgb: 34, 211, 238;
+            --text-light: #e5e7eb;
+            --text-muted: #a1a1aa;
+            --success-green: #4ade80;
+            --danger-red: #f87171;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, var(--bg-dark), var(--bg-darker));
+        }
+
+        /* Animated SVG Ocean Waves */
+        .ocean {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15vh;
+            z-index: 5;
+            pointer-events: none;
+        }
+        .waves {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            animation: move-waves 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+        }
+        .wave.wave1 { animation-delay: -2s; animation-duration: 7s; fill: rgba(var(--accent-rgb), 0.7); }
+        .wave.wave2 { animation-delay: -5s; animation-duration: 10s; fill: rgba(var(--accent-rgb), 0.5); }
+        .wave.wave3 { animation-delay: -4s; animation-duration: 12s; fill: rgba(var(--accent-rgb), 0.3); }
+        @keyframes move-waves {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* Interactive Ripple Effect */
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            border: 2px solid rgba(var(--accent-rgb), 0.7);
+            transform: scale(0);
+            animation: ripple-effect 1.2s ease-out;
+            pointer-events: none;
+            z-index: 6;
+        }
+        @keyframes ripple-effect {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        .content-wrapper { position: relative; z-index: 10; }
+
+        .card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 40px 35px;
+            border-radius: 20px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-sizing: border-box;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .back-link:hover {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        h1 {
+            color: var(--accent);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+        }
+        
+        p.instructions {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .form-container { display: flex; flex-direction: column; gap: 20px; }
+        .input-group { position: relative; }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-group label {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);
+        }
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 12px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: #192233;
+            padding: 0 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-3px);
+        }
+        button.secondary {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+        button.secondary:hover:not(:disabled) {
+            background: rgba(var(--accent-rgb), 0.1);
+        }
+
+        #msg {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 1.2em;
+            font-weight: 500;
+        }
+        #msg.success { color: var(--success-green); }
+        #msg.error { color: var(--danger-red); }
+
+        /* Hide sections by default */
+        #otp-section, #password-section {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .ocean { height: 10vh; }
+            .card { padding: 30px 25px; }
+            h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="ocean">
+        <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+            <defs><path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" /></defs>
+            <g>
+                <use xlink:href="#gentle-wave" x="48" y="0" class="wave wave1" />
+                <use xlink:href="#gentle-wave" x="48" y="3" class="wave wave2" />
+                <use xlink:href="#gentle-wave" x="48" y="5" class="wave wave3" />
+            </g>
+        </svg>
+    </div>
+    
+    <div class="content-wrapper">
+        <div class="card">
+            <a href="login.html" class="back-link" title="Back to Login">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+
+            <h1>Reset Password</h1>
+            <p id="instructions" class="instructions">Enter your email to receive a reset code.</p>
+            
+            <div class="form-container">
+                <div id="email-section">
+                    <div class="input-group">
+                        <input type="email" id="email" placeholder=" " required />
+                        <label for="email">Email Address</label>
+                    </div>
+                    <button id="sendOtpBtn">Send OTP</button>
+                </div>
+
+                <div id="otp-section">
+                    <div class="input-group">
+                        <input type="text" id="otp" placeholder=" " required autocomplete="one-time-code" />
+                        <label for="otp">Enter OTP</label>
+                    </div>
+                    <button id="verifyOtpBtn">Next</button>
+                </div>
+
+                <div id="password-section">
+                    <div class="input-group">
+                        <input type="password" id="newPassword" placeholder=" " required />
+                        <label for="newPassword">New Password</label>
+                    </div>
+                    <div class="input-group">
+                        <input type="password" id="confirmPassword" placeholder=" " required />
+                        <label for="confirmPassword">Confirm New Password</label>
+                    </div>
+                    <button id="resetPasswordBtn">Confirm Reset</button>
+                </div>
+                
+                <p id="msg"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Get Element References ---
+        const emailSection = document.getElementById("email-section");
+        const otpSection = document.getElementById("otp-section");
+        const passwordSection = document.getElementById("password-section");
+        const msgEl = document.getElementById("msg");
+        const instructionsEl = document.getElementById("instructions");
+
+        const emailInput = document.getElementById("email");
+        const otpInput = document.getElementById("otp");
+        const newPasswordInput = document.getElementById("newPassword");
+        const confirmPasswordInput = document.getElementById("confirmPassword");
+        
+        const sendOtpBtn = document.getElementById("sendOtpBtn");
+        const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+        const resetPasswordBtn = document.getElementById("resetPasswordBtn");
+
+        // --- Event Listeners ---
+        sendOtpBtn.addEventListener("click", sendOTP);
+        verifyOtpBtn.addEventListener("click", showPasswordSection);
+        resetPasswordBtn.addEventListener("click", resetPassword);
+
+        // --- Functions (adapted from original logic) ---
+        async function sendOTP() {
+            const email = emailInput.value.trim();
+            if (!email) {
+                showMessage("Please enter your email", true);
+                return;
+            }
+            
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.textContent = "Sending...";
+
+            const res = await fetch("/forgot-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            
+            if (data.ok) {
+                showMessage(data.message, false);
+                emailSection.style.display = "none";
+                otpSection.style.display = "flex";
+                instructionsEl.textContent = "Check your email for the OTP we just sent you.";
+                otpInput.focus();
+            } else {
+                showMessage(data.message, true);
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.textContent = "Send OTP";
+            }
+        }
+
+        function showPasswordSection() {
+            const otp = otpInput.value.trim();
+            if (!otp) {
+                showMessage("Please enter the OTP", true);
+                return;
+            }
+            showMessage("", false);
+            otpSection.style.display = "none";
+            passwordSection.style.display = "flex";
+            instructionsEl.textContent = "Please enter and confirm your new password.";
+            newPasswordInput.focus();
+        }
+
+        async function resetPassword() {
+            const email = emailInput.value.trim();
+            const otp = otpInput.value.trim();
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (!newPassword || !confirmPassword) {
+                showMessage("Please fill in both password fields", true);
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                showMessage("Passwords do not match", true);
+                return;
+            }
+
+            resetPasswordBtn.disabled = true;
+            resetPasswordBtn.textContent = "Resetting...";
+
+            const res = await fetch("/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, otp, newPassword })
+            });
+            const data = await res.json();
+            
+            if (data.ok) {
+                showMessage(data.message, false);
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            } else {
+                 showMessage(data.message, true);
+                 resetPasswordBtn.disabled = false;
+                 resetPasswordBtn.textContent = "Confirm Reset";
+            }
+        }
+
+        function showMessage(text, isError) {
+            msgEl.textContent = text;
+            msgEl.className = isError ? 'error' : 'success';
+        }
+
+        // --- Interactive Ripple on Click (Visual Only) ---
+        document.body.addEventListener('click', function(e) {
+            if (e.target.closest('.card')) return;
+
+            const ripple = document.createElement('div');
+            ripple.classList.add('ripple');
+            const size = Math.random() * 50 + 50;
+            ripple.style.width = `${size}px`;
+            ripple.style.height = `${size}px`;
+            ripple.style.left = `${e.clientX - (size / 2)}px`;
+            ripple.style.top = `${e.clientY - (size / 2)}px`;
+            document.body.appendChild(ripple);
+            ripple.addEventListener('animationend', () => {
+                ripple.remove();
+            });
+        });
+    </script>
+</body>
+</html>

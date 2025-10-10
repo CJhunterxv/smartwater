@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>SmartWater | Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0b1226;
+            --bg-darker: #050816;
+            --accent: #22d3ee;
+            --accent-rgb: 34, 211, 238;
+            --text-light: #e5e7eb;
+            --text-muted: #a1a1aa;
+            --success-green: #4ade80;
+            --danger-red: #f87171;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-y: auto; /* Allow scrolling on small screens if card content is long */
+            background-color: var(--bg-darker); /* Fallback */
+            position: relative; /* For background animations */
+        }
+
+        /* ===== NEW: ANIMATED GRADIENT BACKGROUND ===== */
+        .animated-background {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: linear-gradient(45deg, #0f2027, #203a43, #2c5364);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            filter: brightness(0.8) contrast(1.2); /* Enhance the deep water feel */
+            overflow: hidden; /* Hide anything outside */
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Add more subtle layers for depth */
+        .animated-background::before,
+        .animated-background::after {
+            content: '';
+            position: absolute;
+            inset: -20%; /* Extend beyond the viewport to ensure full coverage on animation */
+            background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.1) 0%, transparent 50%);
+            opacity: 0.5;
+            animation: moveCircles 20s linear infinite alternate;
+        }
+
+        .animated-background::after {
+            background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.08) 0%, transparent 60%);
+            animation: moveCircles 25s reverse linear infinite alternate;
+            left: 50%; top: 50%; /* Different origin for motion */
+        }
+
+        @keyframes moveCircles {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.2) translate(10%, 10%); }
+        }
+
+
+        /* Interactive Ripple Effect */
+        .ripple-layer { /* A dedicated layer for ripples */
+            position: fixed;
+            inset: 0;
+            z-index: 1; /* Above animated background, below content */
+            pointer-events: none; /* Ripples don't block clicks */
+        }
+        
+        .ripple {
+            position: absolute; /* Changed to absolute within ripple-layer */
+            border-radius: 50%;
+            border: 2px solid rgba(var(--accent-rgb), 0.5);
+            transform: scale(0);
+            animation: ripple-effect 1.5s ease-out;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes ripple-effect {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+
+        .card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(16px);
+            padding: 40px 35px;
+            border-radius: 20px;
+            width: 420px;
+            max-width: 100%;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .back-link:hover {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+        
+        .card h2 {
+            font-family: 'Orbitron', sans-serif;
+            margin-bottom: 2rem;
+            color: var(--accent);
+            letter-spacing: 1px;
+            font-size: 2rem;
+            text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+        }
+
+        form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            text-align: left;
+        }
+
+        .input-group { position: relative; }
+        .input-group.full-width { grid-column: 1 / -1; }
+        
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-group label {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);
+        }
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 12px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: #192233;
+            padding: 0 5px;
+        }
+
+        button[type="submit"] {
+            grid-column: 1 / -1;
+            padding: 14px;
+            margin-top: 10px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #000;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+
+        button[type="submit"]:hover {
+            background: var(--accent-hover);
+            transform: translateY(-3px);
+        }
+
+        #message {
+            grid-column: 1 / -1;
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 1.2em;
+            font-weight: 500;
+        }
+        
+        .alt-actions {
+            grid-column: 1 / -1;
+            display: none;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .alt-actions a {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: 500;
+            transition: background 0.3s, transform 0.2s, color 0.3s;
+        }
+        .alt-actions .btn-login {
+            background: var(--accent);
+            color: #000;
+        }
+         .alt-actions .btn-reset {
+            background: transparent;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+        }
+        .alt-actions a:hover {
+            transform: translateY(-3px);
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 30px 25px;
+            }
+            form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="animated-background"></div>
+    <div class="ripple-layer" id="ripple-layer"></div>
+
+    <div class="content-wrapper">
+        <div class="card">
+            <a href="/login" class="back-link" title="Back to Login">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h2>Create Account</h2>
+            <form id="registerForm">
+                <div class="input-group">
+                    <input type="text" id="name" placeholder=" " required />
+                    <label for="name">First Name</label>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="surname" placeholder=" " required />
+                    <label for="surname">Surname</label>
+                </div>
+                <div class="input-group full-width">
+                    <input type="email" id="email" placeholder=" " required />
+                    <label for="email">Email Address</label>
+                </div>
+                <div class="input-group full-width">
+                    <input type="tel" id="phone" placeholder=" " required />
+                    <label for="phone">Phone</label>
+                </div>
+                <div class="input-group full-width">
+                    <input type="text" id="location" placeholder=" " required />
+                    <label for="location">Location (e.g., City)</label>
+                </div>
+                <div class="input-group full-width">
+                    <input type="password" id="password" placeholder=" " required />
+                    <label for="password">Password</label>
+                </div>
+                <div class="input-group full-width">
+                    <input type="password" id="confirmPassword" placeholder=" " required />
+                    <label for="confirmPassword">Confirm Password</label>
+                </div>
+                
+                <button type="submit" id="registerBtn">Register</button>
+                
+                <div class="alt-actions" id="alt-actions">
+                    <a href="/login" class="btn-login">Log In Instead</a>
+                    <a href="/reset-password-page" class="btn-reset">Forgot Password?</a>
+                </div>
+
+                <div id="message"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Interactive Ripple Effect (Visual Only)
+        document.body.addEventListener('click', function(e) {
+            // Only trigger ripple if not on the card and not on mobile (for performance)
+            if (e.target.closest('.card') || window.innerWidth < 768) return; 
+
+            const rippleLayer = document.getElementById('ripple-layer');
+            const ripple = document.createElement('div');
+            ripple.classList.add('ripple');
+            const size = Math.random() * 50 + 50;
+            ripple.style.width = `${size}px`; ripple.style.height = `${size}px`;
+            ripple.style.left = `${e.clientX - (size/2)}px`; 
+            ripple.style.top = `${e.clientY - (size/2)}px`;
+            rippleLayer.appendChild(ripple);
+            ripple.addEventListener('animationend', () => ripple.remove());
+        });
+
+        // Registration form logic
+        const registerForm = document.getElementById("registerForm");
+        const messageBox = document.getElementById("message");
+        const registerBtn = document.getElementById("registerBtn");
+        const altActions = document.getElementById("alt-actions");
+        
+        function resetFormState() {
+            messageBox.innerText = "";
+            registerBtn.style.display = 'block';
+            altActions.style.display = 'none';
+        }
+        
+        document.getElementById("email").addEventListener('input', resetFormState);
+        document.getElementById("phone").addEventListener('input', resetFormState);
+
+        registerForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            resetFormState(); // Clear previous messages
+
+            const name = document.getElementById("name").value.trim();
+            const surname = document.getElementById("surname").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const location = document.getElementById("location").value.trim();
+            const password = document.getElementById("password").value;
+            const confirmPassword = document.getElementById("confirmPassword").value;
+            
+            messageBox.style.color = "var(--danger-red)";
+
+            if (password !== confirmPassword) {
+                messageBox.innerText = "⚠ Passwords do not match!";
+                return;
+            }
+
+            try {
+                const res = await fetch("/users", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, surname, email, phone, location, password })
+                });
+
+                const data = await res.json();
+                
+                if (data.ok) {
+                    messageBox.style.color = "var(--success-green)";
+                    messageBox.innerText = data.message || "✅ Success! Check email to verify.";
+                    setTimeout(() => {
+                        window.location.href = '/verify';
+                    }, 2000);
+                } else {
+                    if (data.message && data.message.includes('User already exists')) {
+                        messageBox.innerText = "An account with this email or phone already exists.";
+                        registerBtn.style.display = 'none';
+                        altActions.style.display = 'flex';
+                    } else {
+                        messageBox.innerText = "❌ " + (data.message || "Registration failed.");
+                    }
+                }
+            } catch (err) {
+                messageBox.innerText = "❌ Could not connect to the server.";
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Verify Email - SmartWater</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0b1226;
+            --bg-darker: #050816;
+            --accent: #22d3ee;
+            --accent-rgb: 34, 211, 238;
+            --text-light: #e5e7eb;
+            --text-muted: #a1a1aa;
+            --success-green: #4ade80;
+            --danger-red: #f87171;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, var(--bg-dark), var(--bg-darker));
+        }
+
+        /* ===== ANIMATED SVG OCEAN WAVES ===== */
+        .ocean {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15vh;
+            z-index: 5;
+            pointer-events: none; /* Waves themselves aren't clickable */
+        }
+
+        .waves {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%; /* Twice as wide to loop smoothly */
+            animation: move-waves 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+        }
+        .wave.wave1 { animation-delay: -2s; animation-duration: 7s; fill: rgba(var(--accent-rgb), 0.7); }
+        .wave.wave2 { animation-delay: -5s; animation-duration: 10s; fill: rgba(var(--accent-rgb), 0.5); }
+        .wave.wave3 { animation-delay: -4s; animation-duration: 12s; fill: rgba(var(--accent-rgb), 0.3); }
+        .wave.wave4 { animation-delay: -3s; animation-duration: 15s; fill: rgba(var(--accent-rgb), 0.2); }
+
+        @keyframes move-waves {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* ===== INTERACTIVE RIPPLE EFFECT ===== */
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            border: 2px solid rgba(var(--accent-rgb), 0.7);
+            background: rgba(var(--accent-rgb), 0.1);
+            transform: scale(0);
+            animation: ripple-effect 1.2s ease-out;
+            pointer-events: none;
+            z-index: 6;
+        }
+        @keyframes ripple-effect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+
+        .card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 40px 35px;
+            border-radius: 20px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .back-link:hover {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        h1 {
+            color: var(--accent);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+        }
+        
+        p.instructions {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-group label {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);
+        }
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 12px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: #192233;
+            padding: 0 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        button:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-3px);
+        }
+        button:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #message {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 1.2em;
+            font-weight: 500;
+        }
+        #message.success { color: var(--success-green); }
+        #message.error { color: var(--danger-red); }
+
+        #otp-group, #verifyBtn, #resendOtpBtn { display: none; }
+
+        @media (max-width: 768px) {
+            .ocean { height: 10vh; }
+            .card {
+                padding: 30px 25px;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="ocean">
+        <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+            <defs>
+                <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+            </defs>
+            <g>
+                <use xlink:href="#gentle-wave" x="48" y="0" class="wave wave1" />
+                <use xlink:href="#gentle-wave" x="48" y="3" class="wave wave2" />
+                <use xlink:href="#gentle-wave" x="48" y="5" class="wave wave3" />
+                <use xlink:href="#gentle-wave" x="48" y="7" class="wave wave4" />
+            </g>
+        </svg>
+    </div>
+    
+    <div class="content-wrapper">
+        <div class="card">
+            <a href="login.html" class="back-link" title="Back to Login">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+
+            <h1>Verify Your Email</h1>
+            <p class="instructions">Enter your email to receive a One-Time Password (OTP).</p>
+            
+            <div class="form-container">
+                <div class="input-group">
+                    <input type="email" id="email" placeholder=" " required />
+                    <label for="email">Email Address</label>
+                </div>
+                
+                <button type="button" id="sendOtpBtn">Send OTP</button>
+
+                <div class="input-group" id="otp-group">
+                    <input type="text" id="otp" placeholder=" " required autocomplete="one-time-code" />
+                    <label for="otp">Enter 6-Digit OTP</label>
+                </div>
+                
+                <button type="button" id="verifyBtn">Verify</button>
+                <button type="button" id="resendOtpBtn">Resend OTP</button>
+
+                <p id="message"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const emailInput = document.getElementById("email");
+        const otpInput = document.getElementById("otp");
+        const sendOtpBtn = document.getElementById("sendOtpBtn");
+        const resendOtpBtn = document.getElementById("resendOtpBtn");
+        const verifyBtn = document.getElementById("verifyBtn");
+        const otpGroup = document.getElementById("otp-group");
+        const messageEl = document.getElementById("message");
+
+        sendOtpBtn.addEventListener("click", sendOtp);
+        resendOtpBtn.addEventListener("click", sendOtp);
+        verifyBtn.addEventListener("click", verifyOtp);
+        
+        otpInput.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                verifyOtp();
+            }
+        });
+
+        async function sendOtp() {
+            const email = emailInput.value.trim();
+            if (!email) {
+                showMessage("Please enter your email address.", true);
+                return;
+            }
+            
+            this.disabled = true;
+            this.textContent = 'Sending...';
+
+            try {
+                const res = await fetch("/resend-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    showMessage(data.message, false);
+                    emailInput.disabled = true;
+                    sendOtpBtn.style.display = "none";
+                    resendOtpBtn.style.display = "block";
+                    otpGroup.style.display = "block";
+                    verifyBtn.style.display = "block";
+                    otpInput.focus();
+                    startResendTimer();
+                } else {
+                    showMessage(data.message, true);
+                    this.disabled = false;
+                    this.textContent = this.id === 'sendOtpBtn' ? 'Send OTP' : 'Resend OTP';
+                }
+            } catch (err) {
+                showMessage("Could not connect to the server.", true);
+                this.disabled = false;
+                this.textContent = this.id === 'sendOtpBtn' ? 'Send OTP' : 'Resend OTP';
+            }
+        }
+
+        const resendOtp = sendOtp;
+
+        async function verifyOtp() {
+            const email = emailInput.value.trim();
+            const otp = otpInput.value.trim();
+             if (!otp) {
+                showMessage("Please enter the OTP from your email.", true);
+                return;
+            }
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = "Verifying...";
+
+            try {
+                const res = await fetch("/verify-otp", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, otp })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    showMessage(data.message, false);
+                    setTimeout(() => window.location.href = "/login.html", 2000);
+                } else {
+                    showMessage(data.message, true);
+                }
+            } catch (err) {
+                showMessage("Error during verification. Please try again.", true);
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = "Verify";
+            }
+        }
+
+        function showMessage(text, isError) {
+            messageEl.textContent = text;
+            messageEl.className = isError ? 'error' : 'success';
+        }
+
+        function startResendTimer() {
+            let timeLeft = 60;
+            resendOtpBtn.disabled = true;
+            
+            const timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    resendOtpBtn.disabled = false;
+                    resendOtpBtn.textContent = "Resend OTP";
+                } else {
+                    resendOtpBtn.textContent = `Resend OTP in ${timeLeft}s`;
+                    timeLeft--;
+                }
+            }, 1000);
+        }
+
+        // Interactive Ripple on Click
+        document.body.addEventListener('click', function(e) {
+            if (e.target.closest('.card') || window.innerWidth < 768) return;
+
+            const ripple = document.createElement('div');
+            ripple.classList.add('ripple');
+            
+            const size = Math.random() * 50 + 50;
+            ripple.style.width = `${size}px`;
+            ripple.style.height = `${size}px`;
+            ripple.style.left = `${e.clientX - (size / 2)}px`;
+            ripple.style.top = `${e.clientY - (size / 2)}px`;
+            
+            document.body.appendChild(ripple);
+
+            ripple.addEventListener('animationend', () => {
+                ripple.remove();
+            });
+        });
+    </script>
+</body>
+</html>

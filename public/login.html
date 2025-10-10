@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>SmartWater Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #0b1226;
+            --bg-darker: #050816;
+            --accent: #22d3ee;
+            --accent-rgb: 34, 211, 238;
+            --text-light: #e5e7eb;
+            --text-muted: #a1a1aa;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background: linear-gradient(to bottom, var(--bg-dark), var(--bg-darker));
+        }
+
+        .raindrop {
+            position: absolute;
+            bottom: 100%;
+            width: 2px;
+            height: 80px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.2));
+            animation: fall 2s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(110vh); }
+        }
+        
+        /* Animated SVG Ocean Waves */
+        .ocean {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 15vh;
+            z-index: 5;
+        }
+
+        .waves {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .wave {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%; /* Make it twice as wide to loop smoothly */
+            animation: move-waves 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+        }
+        /* Each wave with different speed and opacity for depth */
+        .wave.wave1 { animation-delay: -2s; animation-duration: 7s; fill: rgba(var(--accent-rgb), 0.7); }
+        .wave.wave2 { animation-delay: -5s; animation-duration: 10s; fill: rgba(var(--accent-rgb), 0.5); }
+        .wave.wave3 { animation-delay: -4s; animation-duration: 12s; fill: rgba(var(--accent-rgb), 0.3); }
+        .wave.wave4 { animation-delay: -3s; animation-duration: 15s; fill: rgba(var(--accent-rgb), 0.2); }
+
+        @keyframes move-waves {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); } /* Move by half its new width */
+        }
+
+        /* ===== NEW: INTERACTIVE RIPPLE EFFECT ===== */
+        .ripple {
+            position: fixed; /* Use fixed to position relative to the viewport */
+            border-radius: 50%;
+            border: 2px solid rgba(var(--accent-rgb), 0.7);
+            background: rgba(var(--accent-rgb), 0.1);
+            transform: scale(0);
+            animation: ripple-effect 1.2s ease-out;
+            pointer-events: none; /* Ripple should not be clickable */
+            z-index: 6; /* On top of ocean, but below card */
+        }
+        @keyframes ripple-effect {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+
+        .card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(10px);
+            padding: 40px 35px;
+            border-radius: 20px;
+            width: 380px;
+            max-width: 90vw; /* Use vw for better mobile fit */
+            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 0.4s ease;
+            z-index: 11;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 35px 70px rgba(0,0,0,0.5), 0 0 40px rgba(var(--accent-rgb), 0.2);
+        }
+
+        .login-icon {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px var(--accent);
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: color 0.3s, transform 0.3s;
+        }
+        .back-link:hover {
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        h1 {
+            color: var(--accent);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .input-group label {
+            position: absolute;
+            top: 14px;
+            left: 16px;
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);
+        }
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            top: -10px;
+            left: 12px;
+            font-size: 0.8rem;
+            color: var(--accent);
+            background: #192233;
+            padding: 0 5px;
+        }
+
+        button[type="submit"] {
+            width: 100%;
+            padding: 14px;
+            margin-top: 10px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            color: #000;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button[type="submit"]:hover {
+            background: var(--accent-hover);
+            transform: translateY(-3px);
+        }
+
+        #message {
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: var(--accent);
+        }
+
+        .links {
+            margin-top: 25px;
+            display: flex;
+            justify-content: space-around;
+            font-size: 0.9rem;
+        }
+        .links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            position: relative;
+            padding-bottom: 4px;
+        }
+        .links a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background-color: var(--accent);
+            transition: width 0.3s ease;
+        }
+        .links a:hover { color: var(--accent); }
+        .links a:hover::after { width: 100%; }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .ocean { height: 10vh; }
+            .card {
+                padding: 30px 25px;
+            }
+            .card:hover {
+                transform: none;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .raindrop:nth-child(n+20) {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="rain-layer"></div>
+    
+    <div class="ocean">
+        <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+        viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+            <defs>
+                <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+            </defs>
+            <g class="parallax">
+                <use xlink:href="#gentle-wave" x="48" y="0" class="wave wave1" />
+                <use xlink:href="#gentle-wave" x="48" y="3" class="wave wave2" />
+                <use xlink:href="#gentle-wave" x="48" y="5" class="wave wave3" />
+                <use xlink:href="#gentle-wave" x="48" y="7" class="wave wave4" />
+            </g>
+        </svg>
+    </div>
+    
+    <div class="content-wrapper">
+        <div class="card">
+            <a href="/" class="back-link" title="Back to Home">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            
+            <div class="login-icon">
+                <i class="fas fa-tint"></i>
+            </div>
+
+            <h1>SmartWater Login</h1>
+            <form id="loginForm">
+                <div class="input-group">
+                    <input type="email" name="email" id="email" placeholder=" " required />
+                    <label for="email">Email Address</label>
+                </div>
+                <div class="input-group">
+                    <input type="password" name="password" id="password" placeholder=" " required />
+                    <label for="password">Password</label>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            <p id="message"></p>
+
+            <div class="links">
+                <a href="/register">Register</a>
+                <a href="/verify">Verify Email</a>
+                <a href="/reset-password-page">Forgot Password</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ORIGINAL LOGIN FUNCTION (UNCHANGED) ---
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const formData = Object.fromEntries(new FormData(e.target).entries());
+            const res = await fetch("/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData)
+            });
+            const data = await res.json();
+            if (data.ok) {
+                localStorage.setItem("token", data.token);
+                document.getElementById("message").innerText = "Login successful!, Wait a moment...";
+                // CHANGED: Redirect to clean "/dashboard" URL
+                setTimeout(() => window.location.href = "/dashboard", 1000);
+            } else {
+                document.getElementById("message").innerText = "❌ " + data.message;
+            }
+        });
+
+        // --- RAINDROP & RIPPLE SCRIPTS (VISUAL ONLY) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const rainLayer = document.getElementById('rain-layer');
+            if (rainLayer) {
+                const numberOfDrops = 50;
+                for (let i = 0; i < numberOfDrops; i++) {
+                    const drop = document.createElement('div');
+                    drop.classList.add('raindrop');
+                    drop.style.left = `${Math.random() * 100}vw`;
+                    drop.style.animationDuration = `${1 + Math.random() * 1}s`;
+                    drop.style.animationDelay = `${Math.random() * 4}s`;
+                    rainLayer.appendChild(drop);
+                }
+            }
+
+            // --- NEW: Interactive ripple on click ---
+            document.body.addEventListener('click', function(e) {
+                if (e.target.closest('.card')) {
+                    return; // Don't create ripple if click is on the card
+                }
+
+                const ripple = document.createElement('div');
+                ripple.classList.add('ripple');
+                
+                const size = Math.random() * 50 + 50; // Ripple size between 50px and 100px
+                ripple.style.width = `${size}px`;
+                ripple.style.height = `${size}px`;
+                ripple.style.left = `${e.clientX - (size / 2)}px`;
+                ripple.style.top = `${e.clientY - (size / 2)}px`;
+                
+                document.body.appendChild(ripple);
+
+                ripple.addEventListener('animationend', () => {
+                    ripple.remove();
+                });
+            });
+        });
+    </script>
+</body>
+</html>
