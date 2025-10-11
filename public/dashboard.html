@@ -52,7 +52,10 @@
     .header-controls { display: flex; align-items: center; gap: 16px; }
     .sub { color: var(--text-muted); font-size: 0.9rem; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .chart-tile { grid-column: 1 / -1; }
+    @media (max-width: 700px) {
+      .chart-tile { grid-column: auto; }
+    }
 
     .tile {
       background: var(--surface); backdrop-filter: blur(12px);
@@ -85,55 +88,6 @@
     .gauge-bg, .gauge-fg { fill: none; stroke-width: 16; }
     .gauge-bg { stroke: rgba(0,0,0,0.3); }
     .gauge-fg { stroke: var(--good); stroke-linecap: round; transition: stroke-dasharray 0.5s ease, stroke 0.5s ease; }
-
-    /* Chart tile bigger */
-    .chart-tile { grid-column: span 2; }
-    .chart-tile canvas { height: 300px !important; }
-
-    /* Filter buttons */
-    .filter-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
-    .filter-buttons button { background: rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-    .filter-buttons button.active { background: var(--accent); color: #000; font-weight: 600; }
-
-    /* Popup overlay */
-    .popup {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-    .popup-content {
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      padding: 20px 30px;
-      text-align: center;
-      color: var(--text-light);
-      font-family: 'Poppins', sans-serif;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      animation: fadeIn 0.3s ease-out;
-    }
-    .popup-content button {
-      margin-top: 15px;
-      background: var(--accent);
-      color: #000;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .popup-content button:hover { background: #1ab6cc; }
-
-    @media (max-width: 1000px) { .chart-tile { grid-column: span 1; } }
-    @media (max-width: 700px) {
-      header { flex-direction: column; gap: 16px; align-items: flex-start; }
-      .header-controls { width: 100%; justify-content: space-between; }
-    }
   </style>
 </head>
 <body>
@@ -172,16 +126,19 @@
         <div class="status-item"><span><i class="fas fa-bell"></i> Buzzer</span><span id="buzzerBadge" class="badge neutral">-</span></div>
         <div class="status-item"><span><i class="fas fa-history"></i> Last Alert</span><span id="lastAlertBadge" class="badge neutral">None</span></div>
       </div>
-<div class="tile">
-  <h2><i class="fas fa-cloud-sun"></i> Local Weather</h2>
-  <div id="weatherBox" class="sub">Loading...</div>
-</div>
+
+      <!-- Weather -->
+      <div class="tile">
+        <h2><i class="fas fa-cloud-sun"></i> Local Weather</h2>
+        <div id="weatherBox" class="sub">Loading...</div>
+      </div>
 
       <!-- Event Log -->
       <div class="tile">
         <h2><i class="fas fa-stream"></i> Event Log</h2>
         <div class="event-log" id="event-log"></div>
       </div>
+
       <!-- Data History -->
       <div class="tile chart-tile">
         <h2><i class="fas fa-chart-line"></i> Data History</h2>
@@ -201,6 +158,7 @@
       <button id="requestAdminBtn" onclick="requestAdminAccess()">Request Admin Control</button>
     </div>
   </div> <!-- end container -->
+
 <script>
   // --- Theme colors ---
   const rootStyles = getComputedStyle(document.documentElement);
@@ -244,6 +202,8 @@
       ]
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,   // important for mobile
       plugins: { legend: { labels: { color: textLightColor } } },
       scales: {
         x: { ticks: { color: textMutedColor }, grid: { display: false } },
@@ -259,7 +219,6 @@
       }
     }
   });
-
   // --- DOM refs + state ---
   const gaugeFg = document.getElementById('gauge-fg');
   const gaugeText = document.getElementById('gauge-text');
@@ -294,6 +253,7 @@
     else if (distance <= 15) { gaugeFg.style.stroke='var(--warn)'; gaugeText.style.color='var(--warn)'; }
     else { gaugeFg.style.stroke='var(--good)'; gaugeText.style.color='var(--text-light)'; }
   }
+
   // --- Data History ---
   function displayHistoricalData(data) {
     liveChart.data.labels = data.labels;
@@ -418,35 +378,43 @@
     addLogEntry('Dashboard Initialized.','good');
     setFilter('live');
   });
-async function fetchWeather() {
-  const apiKey = "f9fa3ee7c10e8bddd0235f9437dc81c7";
-  const lat = -29.8587;
-  const lon = 31.0218;
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    document.getElementById("weatherBox").innerHTML = `
-      <div class="status-item"><span>🌡 Temp</span><span>${data.main.temp} °C</span></div>
-      <div class="status-item"><span>💧 Humidity</span><span>${data.main.humidity}%</span></div>
-      <div class="status-item"><span>🌬 Wind</span><span>${data.wind.speed} m/s</span></div>
-      <div class="status-item"><span>☁ Condition</span><span>${data.weather[0].description}</span></div>
-    `;
-  } catch (err) {
-    console.error("Weather fetch failed", err);
-    document.getElementById("weatherBox").textContent = "Weather unavailable";
+  // --- Weather Fetch ---
+  async function fetchWeather() {
+    const apiKey = "f9fa3ee7c10e8bddd0235f9437dc81c7";
+    const lat = -29.8587;
+    const lon = 31.0218;
+    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      document.getElementById("weatherBox").innerHTML = `
+        <div class="status-item"><span>🌡 Temp</span><span>${data.main.temp} °C</span></div>
+        <div class="status-item"><span>💧 Humidity</span><span>${data.main.humidity}%</span></div>
+        <div class="status-item"><span>🌬 Wind</span><span>${data.wind.speed} m/s</span></div>
+        <div class="status-item"><span>☁ Condition</span><span>${data.weather[0].description}</span></div>
+      `;
+    } catch (err) {
+      console.error("Weather fetch failed", err);
+      document.getElementById("weatherBox").textContent = "Weather unavailable";
+    }
   }
-}
 
-// Run once on load + refresh every 15 minutes
-document.addEventListener("DOMContentLoaded", () => {
-  fetchWeather();
-  setInterval(fetchWeather, 900000); // 15 min
-});
-
+  // Run once on load + refresh every 15 minutes
+  document.addEventListener("DOMContentLoaded", () => {
+    fetchWeather();
+    setInterval(fetchWeather, 900000); // 15 min
+  });
 </script>
 
+<!-- Popup HTML (needed for showPopup/closePopup) -->
+<div id="popup" class="popup">
+  <div class="popup-content">
+    <p id="popup-message"></p>
+    <button onclick="closePopup()">Close</button>
+  </div>
+</div>
 
 </body>
 </html>
