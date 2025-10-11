@@ -19,43 +19,16 @@ const liveChart = new Chart(document.getElementById('liveChart'), {
   data: {
     labels: [],
     datasets: [
-      { 
-        label: 'Distance (cm)', 
-        data: [], 
-        borderColor: accentColor, 
-        backgroundColor: `rgba(${accentRgb},0.15)`, 
-        fill: true, 
-        tension: 0.4, 
-        pointRadius: 0, 
-        yAxisID: 'yDistance' 
-      },
-      { 
-        label: 'Water Detected', 
-        data: [], 
-        borderColor: lightGreenColor, 
-        backgroundColor: `rgba(${lightGreenRgb},0.15)`, 
-        fill: true, 
-        stepped: true, 
-        pointRadius: 0, 
-        yAxisID: 'yWater' 
-      }
+      { label: 'Distance (cm)', data: [], borderColor: accentColor, backgroundColor: `rgba(${accentRgb},0.15)`, fill: true, tension: 0.4, pointRadius: 0, yAxisID: 'yDistance' },
+      { label: 'Water Detected', data: [], borderColor: lightGreenColor, backgroundColor: `rgba(${lightGreenRgb},0.15)`, fill: true, stepped: true, pointRadius: 0, yAxisID: 'yWater' }
     ]
   },
   options: {
-    responsive: true,
-    maintainAspectRatio: false,   // important for mobile
     plugins: { legend: { labels: { color: textLightColor } } },
     scales: {
       x: { ticks: { color: textMutedColor }, grid: { display: false } },
       yDistance: { type: 'linear', position: 'left', ticks: { color: accentColor }, grid: { color: gridColor } },
-      yWater: { 
-        type: 'linear', 
-        position: 'right', 
-        min: 0, 
-        max: 1, 
-        ticks: { stepSize: 1, color: lightGreenColor, callback: v => v===1?'Yes':'No' }, 
-        grid: { drawOnChartArea: false } 
-      }
+      yWater: { type: 'linear', position: 'right', min: 0, max: 1, ticks: { stepSize: 1, color: lightGreenColor, callback: v => v===1?'Yes':'No' }, grid: { drawOnChartArea: false } }
     }
   }
 });
@@ -72,43 +45,25 @@ let liveDataInterval;
 let currentFilter = 'live';
 let isSystemOnline = true;
 let previousState = {};
+
 // --- helpers ---
-function setBadge(el, text, cls) { 
-  el.className = 'badge ' + cls; 
-  el.textContent = text; 
-}
-
-function setSwitch(el, on) { 
-  el.classList.toggle('on', on); 
-}
-
+function setBadge(el, text, cls) { el.className = 'badge ' + cls; el.textContent = text; }
+function setSwitch(el, on) { el.classList.toggle('on', on); }
 function addLogEntry(message, type='neutral') {
   const logEntry = document.createElement('div');
-  logEntry.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> 
-                        <span class="event-${type}">${message}</span>`;
+  logEntry.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> <span class="event-${type}">${message}</span>`;
   eventLog.prepend(logEntry);
   if (eventLog.children.length > 20) eventLog.removeChild(eventLog.lastChild);
 }
-
 function updateGauge(distance) {
   const MAX_DISTANCE = 50;
   let percent = 100 - (Math.min(distance, MAX_DISTANCE) / MAX_DISTANCE * 100);
   percent = Math.max(0, Math.min(100, percent));
   gaugeFg.style.strokeDashoffset = gaugeCircumference - (percent/100)*gaugeCircumference;
   gaugeText.innerHTML = `${distance || 0}<small>cm</small>`;
-
-  if (distance <= 5) { 
-    gaugeFg.style.stroke='var(--bad)'; 
-    gaugeText.style.color='var(--bad)'; 
-  }
-  else if (distance <= 15) { 
-    gaugeFg.style.stroke='var(--warn)'; 
-    gaugeText.style.color='var(--warn)'; 
-  }
-  else { 
-    gaugeFg.style.stroke='var(--good)'; 
-    gaugeText.style.color='var(--text-light)'; 
-  }
+  if (distance <= 5) { gaugeFg.style.stroke='var(--bad)'; gaugeText.style.color='var(--bad)'; }
+  else if (distance <= 15) { gaugeFg.style.stroke='var(--warn)'; gaugeText.style.color='var(--warn)'; }
+  else { gaugeFg.style.stroke='var(--good)'; gaugeText.style.color='var(--text-light)'; }
 }
 
 // --- filter controls ---
@@ -121,8 +76,7 @@ function displayHistoricalData(data) {
 
 function setFilter(filter) {
   currentFilter = filter;
-  document.querySelectorAll('.filter-buttons button')
-    .forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
   document.getElementById(`btn-${filter}`).classList.add('active');
   clearInterval(liveDataInterval);
 
@@ -134,19 +88,12 @@ function setFilter(filter) {
     fetchStatus();
     liveDataInterval = setInterval(fetchStatus, 2000);
   } else if (filter === 'month') {
-    displayHistoricalData({ 
-      labels: ['Week 1','W2','W3','W4'], 
-      distance:[25,30,22,28], 
-      water:[0,0,1,0] 
-    });
+    displayHistoricalData({ labels: ['Week 1','W2','W3','W4'], distance:[25,30,22,28], water:[0,0,1,0] });
   } else if (filter === '6months') {
-    displayHistoricalData({ 
-      labels: ['May','Jun','Jul','Aug','Sep','Oct'], 
-      distance:[35,40,38,42,30,25], 
-      water:[0,0,0,0,1,1] 
-    });
+    displayHistoricalData({ labels: ['May','Jun','Jul','Aug','Sep','Oct'], distance:[35,40,38,42,30,25], water:[0,0,0,0,1,1] });
   }
 }
+
 // --- fetch status ---
 async function fetchStatus() {
   try {
@@ -154,15 +101,10 @@ async function fetchStatus() {
     const payload = await res.json();
     if (!payload.ok) throw new Error(payload.message || 'API error');
 
-    if (!isSystemOnline) { 
-      isSystemOnline = true; 
-      addLogEntry('Physical system connected.','good'); 
-    }
+    if (!isSystemOnline) { isSystemOnline = true; addLogEntry('Physical system connected.','good'); }
 
     const { waterDetected, pumpState, buzzerState, distanceCM, manualOverride, lastUpdate, lastAlert } = payload.data;
-    if (previousState.waterDetected !== waterDetected) {
-      addLogEntry(`Water detection: ${waterDetected?'Yes':'No'}`, waterDetected?'bad':'good');
-    }
+    if (previousState.waterDetected !== waterDetected) addLogEntry(`Water detection: ${waterDetected?'Yes':'No'}`, waterDetected?'bad':'good');
     previousState = { waterDetected };
 
     setBadge(document.getElementById('waterBadge'), waterDetected?'Yes':'No', waterDetected?'bad':'good');
@@ -173,13 +115,8 @@ async function fetchStatus() {
 
     document.getElementById('lastUpdate').textContent = "Last update: "+new Date(lastUpdate).toLocaleString();
     const lastAlertEl=document.getElementById('lastAlertBadge');
-    if (lastAlert) { 
-      lastAlertEl.textContent=new Date(lastAlert).toLocaleString(); 
-      lastAlertEl.className='badge warn'; 
-    } else { 
-      lastAlertEl.textContent='None'; 
-      lastAlertEl.className='badge neutral'; 
-    }
+    if (lastAlert) { lastAlertEl.textContent=new Date(lastAlert).toLocaleString(); lastAlertEl.className='badge warn'; }
+    else { lastAlertEl.textContent='None'; lastAlertEl.className='badge neutral'; }
 
     setSwitch(document.getElementById('pumpSwitch'), pumpState);
     setSwitch(document.getElementById('buzzerSwitch'), buzzerState);
@@ -198,17 +135,11 @@ async function fetchStatus() {
     }
   } catch(e) {
     console.error("Status fetch failed:", e);
-    if (isSystemOnline) { 
-      isSystemOnline=false; 
-      addLogEntry('Physical system offline.','bad'); 
-    }
+    if (isSystemOnline) { isSystemOnline=false; addLogEntry('Physical system offline.','bad'); }
   }
 }
-
 // --- controls ---
-function instantToggle(el) { 
-  setSwitch(el, !el.classList.contains('on')); 
-}
+function instantToggle(el) { setSwitch(el, !el.classList.contains('on')); }
 
 async function togglePump(el) {
   const next = el.classList.contains('on');
@@ -245,11 +176,11 @@ async function toggleBuzzer(el) {
     setTimeout(fetchStatus, 200); 
   }
 }
+
 // --- common actions ---
 function downloadLogs() { 
   window.location.href = '/download-logs'; 
 }
-
 function logout() { 
   localStorage.removeItem('token'); 
   localStorage.removeItem('role'); 
@@ -268,8 +199,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setFilter('live');
   fetchUsers();
   fetchRequests();
-  fetchWeather();
-  setInterval(fetchWeather, 900000); // refresh weather every 15 min
 });
 
 // --- Admin User Management ---
@@ -283,6 +212,7 @@ async function fetchUsers() {
     renderUsers(data.users);
   } catch (err) {
     console.error("Fetch users failed:", err.message);
+    // Silent on load — no popup
   }
 }
 
@@ -317,6 +247,7 @@ async function fetchRequests() {
     renderRequests(data.requests);
   } catch (err) {
     console.error("Fetch requests failed:", err.message);
+    // Silent on load — no popup
   }
 }
 
@@ -333,7 +264,6 @@ function renderRequests(requests) {
     tbody.appendChild(tr);
   });
 }
-
 // --- Direct Promote (no OTP) ---
 async function directPromote(userId) {
   try {
@@ -385,8 +315,6 @@ function closePopup() {
   if (!el) return;
   el.style.display = "none";
 }
-
-// --- Weather Fetch ---
 async function fetchWeather() {
   const apiKey = "f9fa3ee7c10e8bddd0235f9437dc81c7";
   const lat = -29.8587;
@@ -407,3 +335,9 @@ async function fetchWeather() {
     document.getElementById("weatherBox").textContent = "Weather unavailable";
   }
 }
+
+// Run once on load + refresh every 15 minutes
+document.addEventListener("DOMContentLoaded", () => {
+  fetchWeather();
+  setInterval(fetchWeather, 900000); // 15 min
+});
