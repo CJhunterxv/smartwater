@@ -322,13 +322,21 @@
             });
             const data = await res.json();
             if (data.ok) {
-                localStorage.setItem("token", data.token);
-                document.getElementById("message").innerText = "Login successful!, Wait a moment...";
-                // CHANGED: Redirect to clean "/dashboard" URL
-                setTimeout(() => window.location.href = "/dashboard", 1000);
-            } else {
-                document.getElementById("message").innerText = "❌ " + data.message;
-            }
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("role", data.role);
+    document.getElementById("message").innerText = "Login successful! Redirecting...";
+
+    setTimeout(() => {
+        if (data.role === "admin") {
+            window.location.href = "/admin";
+        } else {
+            window.location.href = "/dashboard";
+        }
+    }, 1000);
+} else {
+    document.getElementById("message").innerText = "❌ " + data.message;
+}
+
         });
 
         // --- RAINDROP & RIPPLE SCRIPTS (VISUAL ONLY) ---

@@ -5,14 +5,15 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import { getLatestValues, setVariable } from "./arduinoCloud.js";
 import { sendEmailAlert, sendSMSAlert } from "./notify.js";
-import { sendOTPEmail } from "./mailer.js";
+import { sendOTPEmail } from "./mailer.js"; // kept for user email verification & password reset
 import mongoose from "mongoose";
 import User from "./models/User.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import fetch from "node-fetch";
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
+import AdminLog from "./models/adminlog.js";
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
   .catch(err => console.error("❌ MongoDB error:", err));
 
-// === NEW: MODEL FOR LOGGING SENSOR DATA ===
+// === MODEL FOR LOGGING SENSOR DATA ===
 const logSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
   waterDetected: Boolean,
@@ -29,10 +30,9 @@ const logSchema = new mongoose.Schema({
 });
 const Log = mongoose.model("Log", logSchema);
 
-
-// === NODEMAILER TRANSPORTER SETUP (for Contact Form) ===
+// === NODEMAILER TRANSPORTER (Contact Form) ===
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  service: "gmail",
   auth: {
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
@@ -49,7 +49,7 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // ==========================================================
-// === CLEAN URL ROUTES (To serve HTML pages without .html) ===
+// === CLEAN URL ROUTES (serve HTML pages without .html) ===
 // ==========================================================
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "dashboard.html"));
@@ -63,21 +63,21 @@ app.get("/register", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "register.html"));
 });
 
-// ADDED THIS ROUTE FOR THE VERIFY PAGE
 app.get("/verify", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "verify.html"));
 });
 
-// Assuming you have a reset.html for the password reset form
-app.get("/reset-password-page", (req, res) => { // Renamed to avoid conflict with API
+app.get("/reset-password-page", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "reset.html"));
 });
 
-// Serve the index.html for the root route
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "..", "public", "index.html"));
 });
 
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "..", "public", "admin.html"));
+});
 
 // In-memory logs
 const logs = [];
@@ -87,11 +87,9 @@ let lastAlert = null;
 app.post("/users", async (req, res) => {
   try {
     let { name, surname, email, phone, location, password } = req.body;
-
     if (!email || !password) {
       return res.status(400).json({ ok: false, message: "Email and password are required." });
     }
-
     email = email.trim().toLowerCase();
 
     const existing = await User.findOne({ $or: [{ email }, { phone }] });
@@ -124,31 +122,17 @@ app.post("/users", async (req, res) => {
 app.post("/verify-otp", async (req, res) => {
   try {
     let { email, otp } = req.body;
-    if (!email || !otp)
-      return res.json({ ok: false, message: "Email and OTP are required" });
+    if (!email || !otp) return res.json({ ok: false, message: "Email and OTP are required" });
 
     email = email.trim().toLowerCase();
     otp = String(otp).trim();
 
     const user = await User.findOne({ email });
     if (!user) return res.json({ ok: false, message: "User not found" });
+    if (user.isVerified) return res.json({ ok: true, message: "User already verified" });
 
-    if (user.isVerified)
-      return res.json({ ok: true, message: "User already verified" });
-
-    console.log("DEBUG OTP:", {
-      stored: user.otp,
-      entered: otp,
-      expiry: user.otpExpiry,
-      now: Date.now()
-    });
-
-    if (String(user.otp) !== otp) {
-      return res.json({ ok: false, message: "Invalid OTP" });
-    }
-    if (Date.now() > Number(user.otpExpiry)) {
-      return res.json({ ok: false, message: "OTP expired" });
-    }
+    if (String(user.otp) !== otp) return res.json({ ok: false, message: "Invalid OTP" });
+    if (Date.now() > Number(user.otpExpiry)) return res.json({ ok: false, message: "OTP expired" });
 
     user.isVerified = true;
     user.otp = undefined;
@@ -170,7 +154,6 @@ app.post("/login", async (req, res) => {
 
     const user = await User.findOne({ email: email.trim().toLowerCase() });
     if (!user) return res.json({ ok: false, message: "User not found." });
-
     if (!user.isVerified) return res.json({ ok: false, message: "Please verify your email before logging in." });
 
     const validPassword = await bcrypt.compare(password, user.password);
@@ -185,6 +168,144 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// === ADMIN REQUEST WORKFLOW ===
+
+// 1. User requests admin access
+app.post("/api/admins/request", async (req, res) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return res.json({ ok: false, message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.json({ ok: false, message: "User not found" });
+    if (user.role === "admin") return res.json({ ok: false, message: "Already an admin" });
+
+    user.pendingAdmin = true;
+    await user.save();
+
+    res.json({ ok: true, message: "Request sent to admin" });
+  } catch (err) {
+    res.json({ ok: false, message: err.message });
+  }
+});
+
+// 2. Admin views pending requests
+app.get("/api/admins/requests", async (req, res) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return res.json({ ok: false, message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await User.findById(decoded.id);
+    if (!admin || admin.role !== "admin") return res.json({ ok: false, message: "Not authorized" });
+
+    const pending = await User.find({ pendingAdmin: true }, "email name surname");
+    res.json({ ok: true, requests: pending });
+  } catch (err) {
+    res.json({ ok: false, message: err.message });
+  }
+});
+
+// 3. Admin approves request (direct promotion, with logging)
+app.post("/api/admins/approve", async (req, res) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return res.json({ ok: false, message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await User.findById(decoded.id);
+    if (!admin || admin.role !== "admin") return res.json({ ok: false, message: "Not authorized" });
+
+    const { userId } = req.body;
+    const user = await User.findById(userId);
+    if (!user) return res.json({ ok: false, message: "User not found" });
+
+    if (user.role === "admin") {
+      return res.json({ ok: false, message: "User is already an admin" });
+    }
+
+    user.role = "admin";
+    user.pendingAdmin = false;
+    await user.save();
+
+    // Log promotion
+    await AdminLog.create({
+      action: "promote",
+      targetUser: user._id,
+      targetEmail: user.email,
+      performedBy: admin._id,
+      performedByEmail: admin.email,
+      timestamp: new Date()
+    });
+
+    res.json({ ok: true, message: "User approved and promoted to admin" });
+  } catch (err) {
+    console.error("Approve request error:", err);
+    res.status(500).json({ ok: false, message: "Server error" });
+  }
+});
+
+// 4. Admin removes another admin (demote back to user, with logging)
+app.post("/api/admins/remove", async (req, res) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return res.json({ ok: false, message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await User.findById(decoded.id);
+    if (!admin || admin.role !== "admin") return res.json({ ok: false, message: "Not authorized" });
+
+    const { userId } = req.body;
+    const user = await User.findById(userId);
+    if (!user) return res.json({ ok: false, message: "User not found" });
+
+    if (user.role !== "admin") {
+      return res.json({ ok: false, message: "User is not an admin" });
+    }
+
+    user.role = "user";
+    user.pendingAdmin = false;
+    user.adminOtp = undefined;
+    await user.save();
+
+    // Log demotion
+    await AdminLog.create({
+      action: "demote",
+      targetUser: user._id,
+      targetEmail: user.email,
+      performedBy: admin._id,
+      performedByEmail: admin.email,
+      timestamp: new Date()
+    });
+
+    res.json({ ok: true, message: "Admin rights removed" });
+  } catch (err) {
+    console.error("Remove admin error:", err);
+    res.status(500).json({ ok: false, message: "Server error" });
+  }
+});
+
+// 5. View Admin Action Logs
+app.get("/api/admins/logs", async (req, res) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return res.json({ ok: false, message: "No token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const admin = await User.findById(decoded.id);
+    if (!admin || admin.role !== "admin") {
+      return res.json({ ok: false, message: "Not authorized" });
+    }
+
+    const actionLogs = await AdminLog.find().sort({ timestamp: -1 }).limit(100);
+    res.json({ ok: true, logs: actionLogs });
+  } catch (err) {
+    console.error("Error fetching admin logs:", err);
+    res.status(500).json({ ok: false, message: "Server error" });
+  }
+});
+
 // === STATUS (GET /status) ===
 app.get("/status", async (req, res) => {
   try {
@@ -194,10 +315,11 @@ app.get("/status", async (req, res) => {
     const waterDetected = !!values.waterDetected;
     const distanceCM = values.distanceCM ?? values.distance ?? 0;
     const timestamp = new Date().toISOString();
-    
-    // === NEW: SAVE DATA TO DATABASE ===
+
+    // Save to logs collection
     new Log({ waterDetected, distanceCM }).save().catch(console.error);
 
+    // Push to in-memory logs
     logs.push({ timestamp, pumpState, buzzerState, waterDetected, distanceCM });
 
     if (waterDetected) {
@@ -210,9 +332,13 @@ app.get("/status", async (req, res) => {
     res.json({
       ok: true,
       data: {
-        pumpState, buzzerState, waterDetected, distanceCM,
+        pumpState,
+        buzzerState,
+        waterDetected,
+        distanceCM,
         manualOverride: pumpState || buzzerState,
-        lastUpdate: timestamp, lastAlert
+        lastUpdate: timestamp,
+        lastAlert
       }
     });
   } catch (err) {
@@ -221,41 +347,38 @@ app.get("/status", async (req, res) => {
   }
 });
 
+// === HISTORICAL DATA ===
+app.get("/historical-data", async (req, res) => {
+  const { range } = req.query;
+  let startDate;
 
-// === NEW: ROUTE FOR FETCHING HISTORICAL DATA ===
-app.get('/historical-data', async (req, res) => {
-    const { range } = req.query;
-    let startDate;
+  if (range === "month") {
+    startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  } else if (range === "6months") {
+    startDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
+  } else {
+    return res.status(400).json({ ok: false, message: "Invalid time range" });
+  }
 
-    if (range === 'month') {
-        startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    } else if (range === '6months') {
-        startDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
-    } else {
-        return res.status(400).json({ ok: false, message: 'Invalid time range' });
-    }
+  try {
+    const logsDocs = await Log.find({ timestamp: { $gte: startDate } }).sort({ timestamp: "asc" });
+    const labels = logsDocs.map(log => log.timestamp);
+    const distanceData = logsDocs.map(log => log.distanceCM);
+    const waterData = logsDocs.map(log => (log.waterDetected ? 1 : 0));
 
-    try {
-        const logs = await Log.find({ timestamp: { $gte: startDate } }).sort({ timestamp: 'asc' });
-
-        const labels = logs.map(log => log.timestamp);
-        const distanceData = logs.map(log => log.distanceCM);
-        const waterData = logs.map(log => (log.waterDetected ? 1 : 0));
-
-        res.json({
-            ok: true,
-            labels: labels,
-            datasets: {
-                distance: distanceData,
-                water: waterData,
-            },
-        });
-    } catch (err) {
-        console.error("Error fetching historical data:", err);
-        res.status(500).json({ ok: false, message: 'Server error fetching historical logs.' });
-    }
+    res.json({
+      ok: true,
+      labels,
+      datasets: {
+        distance: distanceData,
+        water: waterData,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching historical data:", err);
+    res.status(500).json({ ok: false, message: "Server error fetching historical logs." });
+  }
 });
-
 
 // === CONTROLS ===
 app.post("/control/pump", async (req, res) => {
@@ -290,7 +413,7 @@ app.get("/download-logs", (req, res) => {
   res.send(csv);
 });
 
-// === USERS LIST (GET /users) ===
+// === USERS LIST ===
 app.get("/users", async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -301,14 +424,13 @@ app.get("/users", async (req, res) => {
   }
 });
 
-// === SEND/RESEND OTP (POST /resend-otp) ===
+// === RESEND OTP ===
 app.post("/resend-otp", async (req, res) => {
   try {
     let { email } = req.body;
     if (!email) return res.status(400).json({ ok: false, message: "Email is required." });
 
     email = email.trim().toLowerCase();
-
     const user = await User.findOne({ email });
     if (!user) return res.json({ ok: false, message: "User not found." });
     if (user.isVerified) return res.json({ ok: false, message: "Already verified." });
@@ -326,18 +448,17 @@ app.post("/resend-otp", async (req, res) => {
   }
 });
 
-// === CONTACT FORM EMAIL (POST /send-email) ===
+// === CONTACT FORM EMAIL ===
 app.post("/send-email", async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
-
     if (!name || !email || !subject || !message) {
       return res.status(400).json({ success: false, error: "All fields are required." });
     }
 
     const mailOptions = {
       from: `"${name}" <${email}>`,
-      to: "calenwent@gmail.com", // This is your receiving email
+      to: "calenwent@gmail.com",
       subject: `Contact Form: ${subject}`,
       text: `New message from: ${name} (${email})\n\n${message}`,
       replyTo: email
@@ -345,18 +466,16 @@ app.post("/send-email", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
     res.json({ success: true, message: "Message sent successfully!" });
-
   } catch (err) {
     console.error("Error in /send-email endpoint:", err);
     res.status(500).json({ success: false, error: "Failed to send email." });
   }
 });
 
-// === AI CHAT (POST /chat) ===
+// === AI CHAT ===
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
-
     const response = await fetch(
       "https://api-inference.huggingface.co/models/meta-llama/Llama-3.3-1B-Instruct",
       {
@@ -370,8 +489,6 @@ app.post("/chat", async (req, res) => {
     );
 
     const text = await response.text();
-    console.log("🔎 HF raw response:", text);
-
     let data;
     try {
       data = JSON.parse(text);
@@ -394,7 +511,7 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// === FORGOT PASSWORD (request reset OTP) ===
+// === FORGOT PASSWORD ===
 app.post("/forgot-password", async (req, res) => {
   try {
     let { email } = req.body;
@@ -406,7 +523,7 @@ app.post("/forgot-password", async (req, res) => {
 
     const otp = String(crypto.randomInt(100000, 999999));
     user.otp = otp;
-    user.otpExpiry = Date.now() + 10 * 60 * 1000; // 10 min expiry
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     await sendOTPEmail(email, otp);
@@ -417,7 +534,7 @@ app.post("/forgot-password", async (req, res) => {
   }
 });
 
-// === RESET PASSWORD (with OTP) ===
+// === RESET PASSWORD ===
 app.post("/reset-password", async (req, res) => {
   try {
     let { email, otp, newPassword } = req.body;
@@ -451,3 +568,5 @@ app.post("/reset-password", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`✅ SmartWater backend running on port ${PORT}`);
 });
+
+

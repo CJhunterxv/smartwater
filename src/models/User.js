@@ -10,9 +10,13 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }, // after OTP
   role: { type: String, enum: ["user", "admin"], default: "user" },
 
-  // 🔑 OTP fields
-  otp: { type: String },            // store OTP as string
-  otpExpiry: { type: Number },      // store expiry as epoch ms (Number)
+  // 🔑 OTP fields (for email/phone verification)
+  otp: { type: String },
+  otpExpiry: { type: Number },
+
+  // 🔑 Admin request workflow
+  pendingAdmin: { type: Boolean, default: false },
+  adminOtp: { type: String },
 
   createdAt: { type: Date, default: Date.now }
 });

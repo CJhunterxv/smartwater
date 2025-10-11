@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SmartWater Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-darker: #050816;
+      --surface: rgba(17, 24, 39, 0.75);
+      --text-light: #e5e7eb;
+      --text-muted: #9ca3af;
+      --accent: #22d3ee;
+      --accent-rgb: 34, 211, 238;
+      --light-green: #34d399;
+      --light-green-rgb: 52, 211, 153;
+      --purple: #a78bfa;
+      --good: #4ade80;
+      --warn: #facc15;
+      --bad: #f87171;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-darker);
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 30px 30px;
+      color: var(--text-light);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container { max-width: 1200px; margin: auto; padding: 24px; }
+
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    header h1 {
+      margin: 0; font-size: 2rem; color: var(--accent);
+      font-family: 'Orbitron', sans-serif;
+      text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+    }
+    .header-controls { display: flex; align-items: center; gap: 16px; }
+    .sub { color: var(--text-muted); font-size: 0.9rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+
+    .tile {
+      background: var(--surface); backdrop-filter: blur(12px);
+      border-radius: 16px; padding: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .tile h2 {
+      margin: 0 0 16px; font-size: 1.2rem; font-family: 'Orbitron', sans-serif;
+      color: var(--purple); border-bottom: 1px solid rgba(167,139,250,0.2);
+      padding-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+
+    .status-item { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; font-size: 1rem; color: var(--text-muted); }
+    .badge { padding: 5px 12px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; }
+    .good { background: rgba(74, 222, 128, 0.1); color: var(--good); }
+    .warn { background: rgba(250, 204, 21, 0.1); color: var(--warn); }
+    .bad { background: rgba(248, 113, 113, 0.1); color: var(--bad); }
+    .neutral { background: rgba(156, 163, 180, 0.1); color: var(--text-muted); }
+
+    .switch { width: 60px; height: 32px; border-radius: 999px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); position: relative; cursor: pointer; }
+    .knob { width: 24px; height: 24px; border-radius: 50%; background: white; position: absolute; top: 3px; left: 4px; transition: transform 0.2s; }
+    .switch.on { background: var(--accent); }
+    .switch.on .knob { transform: translateX(28px); }
+
+    button { background: var(--accent); color:#000; border:none; padding:10px 18px; border-radius: 10px; font-weight: 600; cursor:pointer; }
+    button:hover { background: #1ab6cc; }
+
+    /* Gauge */
+    .gauge-container { display: flex; justify-content: center; align-items: center; margin: 10px 0 20px 0; }
+    .gauge { position: relative; width: 180px; height: 180px; max-width: 80vw; max-height: 80vw; }
+    .gauge-text { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: 700; font-size: 2rem; color: var(--text-light); }
+    .gauge-text small { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
+    .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .gauge-bg, .gauge-fg { fill: none; stroke-width: 14; }
+    .gauge-bg { stroke: rgba(255,255,255,0.1); }
+    .gauge-fg { stroke: url(#gaugeGradient); stroke-linecap: round; stroke-dasharray: 264; stroke-dashoffset: 264; transition: stroke-dashoffset 0.3s ease; }
+
+    /* Chart tile bigger */
+    .chart-tile { grid-column: span 2; }
+    .chart-tile canvas { height: 300px !important; }
+
+    /* Manage Users tile wider */
+    .manage-users-tile { grid-column: span 2; }
+
+    /* Popup overlay */
+    .popup {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .popup-content {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 20px 30px;
+      text-align: center;
+      color: var(--text-light);
+      font-family: 'Poppins', sans-serif;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      animation: fadeIn 0.3s ease-out;
+    }
+    .popup-content button {
+      margin-top: 15px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .popup-content button:hover { background: #1ab6cc; }
+
+    @media (max-width: 1000px) { .chart-tile, .manage-users-tile { grid-column: span 1; } }
+    @media (max-width: 700px) {
+      header { flex-direction: column; gap: 16px; align-items: flex-start; }
+      .header-controls { width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>SmartWater Admin Dashboard</h1>
+      <div class="header-controls">
+        <div class="sub" id="lastUpdate">Last update: —</div>
+        <button onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Water Level -->
+      <div class="tile">
+        <h2><i class="fas fa-tachometer-alt"></i> Water Level</h2>
+        <div class="gauge-container">
+          <div class="gauge">
+            <div class="gauge-text" id="gauge-text">0<small>cm</small></div>
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="var(--good)" />
+                  <stop offset="100%" stop-color="var(--bad)" />
+                </linearGradient>
+              </defs>
+              <circle class="gauge-bg" cx="50" cy="50" r="42"></circle>
+              <circle class="gauge-fg" id="gauge-fg" cx="50" cy="50" r="42" pathLength="264"></circle>
+            </svg>
+          </div>
+        </div>
+        <div class="status-item">
+          <span><i class="fas fa-water"></i> Water Detected</span>
+          <span id="waterBadge" class="badge neutral">-</span>
+        </div>
+      </div>
+
+      <!-- System Status -->
+      <div class="tile">
+        <h2><i class="fas fa-cogs"></i> System Status</h2>
+        <div class="status-item"><span><i class="fas fa-robot"></i> Mode</span><span id="modeBadge" class="badge neutral">Auto</span></div>
+        <div class="status-item"><span><i class="fas fa-power-off"></i> Pump</span><span id="pumpBadge" class="badge neutral">-</span></div>
+        <div class="status-item"><span><i class="fas fa-bell"></i> Buzzer</span><span id="buzzerBadge" class="badge neutral">-</span></div>
+        <div class="status-item"><span><i class="fas fa-history"></i> Last Alert</span><span id="lastAlertBadge" class="badge neutral">None</span></div>
+      </div>
+
+      <!-- Manual Controls -->
+      <div class="tile">
+        <h2><i class="fas fa-toggle-on"></i> Manual Controls</h2>
+        <div class="status-item">
+          <span>Pump Override</span>
+          <div class="switch" id="pumpSwitch" onclick="instantToggle(this); togglePump(this)">
+            <div class="knob"></div>
+          </div>
+        </div>
+        <div class="status-item">
+          <span>Buzzer Override</span>
+          <div class="switch" id="buzzerSwitch" onclick="instantToggle(this); toggleBuzzer(this)">
+            <div class="knob"></div>
+          </div>
+        </div>
+        <button onclick="downloadLogs()"><i class="fas fa-download"></i> Download All Logs</button>
+      </div>
+<div class="tile">
+  <h2><i class="fas fa-cloud-sun"></i> Local Weather</h2>
+  <div id="weatherBox" class="sub">Loading...</div>
+</div>
+
+      <!-- Event Log -->
+      <div class="tile">
+        <h2><i class="fas fa-stream"></i> Event Log</h2>
+        <div class="event-log" id="event-log"></div>
+      </div>
+
+      <!-- Data History -->
+      <div class="tile chart-tile">
+        <h2><i class="fas fa-chart-line"></i> Data History</h2>
+        <div class="filter-buttons">
+          <button id="btn-live" class="active" onclick="setFilter('live')">Live</button>
+          <button id="btn-month" onclick="setFilter('month')">This Month</button>
+          <button id="btn-6months" onclick="setFilter('6months')">Last 6 Months</button>
+        </div>
+        <canvas id="liveChart" height="120"></canvas>
+      </div>
+
+      <!-- Pending Admin Requests -->
+      <div class="tile">
+        <h2><i class="fas fa-user-clock"></i> Pending Admin Requests</h2>
+        <p class="sub">Users who have requested admin access will appear here.</p>
+        <table id="requestsTable">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Filled dynamically by admin.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Manage Users -->
+      <div class="tile manage-users-tile">
+        <h2><i class="fas fa-users-cog"></i> Manage Users</h2>
+        <p class="sub">View all users, their roles, and take actions.</p>
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Pending Admin</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Filled dynamically by admin.js -->
+          </tbody>
+        </table>
+      </div>
+    </div> <!-- end grid -->
+  </div> <!-- end container -->
+  <!-- Link to Admin JS -->
+  <script src="admin.js"></script>
+
+  
+
+</body>
+</html>
