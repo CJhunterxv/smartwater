@@ -4,137 +4,17 @@
   <meta charset="UTF-8" />
   <title>SmartWater Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Charts -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+  <!-- Fonts & Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Orbitron:wght@700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-  <style>
-    :root {
-      --bg-darker: #050816;
-      --surface: rgba(17, 24, 39, 0.75);
-      --text-light: #e5e7eb;
-      --text-muted: #9ca3af;
-      --accent: #22d3ee;
-      --accent-rgb: 34, 211, 238;
-      --light-green: #34d399;
-      --light-green-rgb: 52, 211, 153;
-      --purple: #a78bfa;
-      --good: #4ade80;
-      --warn: #facc15;
-      --bad: #f87171;
-    }
 
-    body {
-      margin: 0;
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--bg-darker);
-      background-image:
-        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 30px 30px;
-      color: var(--text-light);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    .container { max-width: 1200px; margin: auto; padding: 24px; }
-
-    header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 24px; padding-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-    header h1 {
-      margin: 0; font-size: 2rem; color: var(--accent);
-      font-family: 'Orbitron', sans-serif;
-      text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
-    }
-    .header-controls { display: flex; align-items: center; gap: 16px; }
-    .sub { color: var(--text-muted); font-size: 0.9rem; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
-
-    .tile {
-      background: var(--surface); backdrop-filter: blur(12px);
-      border-radius: 16px; padding: 24px;
-      border: 1px solid rgba(255,255,255,0.1);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    .tile h2 {
-      margin: 0 0 16px; font-size: 1.2rem; font-family: 'Orbitron', sans-serif;
-      color: var(--purple); border-bottom: 1px solid rgba(167,139,250,0.2);
-      padding-bottom: 10px; display: flex; align-items: center; gap: 8px;
-    }
-
-    .status-item { display: flex; justify-content: space-between; align-items: center; margin: 12px 0; font-size: 1rem; color: var(--text-muted); }
-    .badge { padding: 5px 12px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; }
-    .good { background: rgba(74, 222, 128, 0.1); color: var(--good); }
-    .warn { background: rgba(250, 204, 21, 0.1); color: var(--warn); }
-    .bad { background: rgba(248, 113, 113, 0.1); color: var(--bad); }
-    .neutral { background: rgba(156, 163, 180, 0.1); color: var(--text-muted); }
-
-    button { background: var(--accent); color:#000; border:none; padding:10px 18px; border-radius: 10px; font-weight: 600; cursor:pointer; }
-    button:hover { background: #1ab6cc; }
-
-    /* Gauge */
-    .gauge-container { display: flex; justify-content: center; align-items: center; margin: 10px 0 20px 0; }
-    .gauge { position: relative; width: 150px; height: 150px; }
-    .gauge-text { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: 700; font-size: 2.5rem; color: var(--text-light); transition: color 0.5s ease; }
-    .gauge-text small { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
-    .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-    .gauge-bg, .gauge-fg { fill: none; stroke-width: 16; }
-    .gauge-bg { stroke: rgba(0,0,0,0.3); }
-    .gauge-fg { stroke: var(--good); stroke-linecap: round; transition: stroke-dasharray 0.5s ease, stroke 0.5s ease; }
-
-    /* Chart tile bigger */
-    .chart-tile { grid-column: span 2; }
-    .chart-tile canvas { height: 300px !important; }
-
-    /* Filter buttons */
-    .filter-buttons { display: flex; gap: 10px; margin-bottom: 20px; }
-    .filter-buttons button { background: rgba(255,255,255,0.1); color: var(--text-muted); padding: 8px 14px; border-radius: 6px; cursor: pointer; }
-    .filter-buttons button.active { background: var(--accent); color: #000; font-weight: 600; }
-
-    /* Popup overlay */
-    .popup {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-    .popup-content {
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 12px;
-      padding: 20px 30px;
-      text-align: center;
-      color: var(--text-light);
-      font-family: 'Poppins', sans-serif;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      animation: fadeIn 0.3s ease-out;
-    }
-    .popup-content button {
-      margin-top: 15px;
-      background: var(--accent);
-      color: #000;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .popup-content button:hover { background: #1ab6cc; }
-
-    @media (max-width: 1000px) { .chart-tile { grid-column: span 1; } }
-    @media (max-width: 700px) {
-      header { flex-direction: column; gap: 16px; align-items: flex-start; }
-      .header-controls { width: 100%; justify-content: space-between; }
-    }
-  </style>
+  <!-- External CSS -->
+  <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
   <div class="container">
@@ -172,16 +52,19 @@
         <div class="status-item"><span><i class="fas fa-bell"></i> Buzzer</span><span id="buzzerBadge" class="badge neutral">-</span></div>
         <div class="status-item"><span><i class="fas fa-history"></i> Last Alert</span><span id="lastAlertBadge" class="badge neutral">None</span></div>
       </div>
-<div class="tile">
-  <h2><i class="fas fa-cloud-sun"></i> Local Weather</h2>
-  <div id="weatherBox" class="sub">Loading...</div>
-</div>
+
+      <!-- Weather -->
+      <div class="tile">
+        <h2><i class="fas fa-cloud-sun"></i> Local Weather</h2>
+        <div id="weatherBox" class="sub">Loading...</div>
+      </div>
 
       <!-- Event Log -->
       <div class="tile">
         <h2><i class="fas fa-stream"></i> Event Log</h2>
         <div class="event-log" id="event-log"></div>
       </div>
+
       <!-- Data History -->
       <div class="tile chart-tile">
         <h2><i class="fas fa-chart-line"></i> Data History</h2>
@@ -190,264 +73,27 @@
           <button id="btn-month" onclick="setFilter('month')">This Month</button>
           <button id="btn-6months" onclick="setFilter('6months')">Last 6 Months</button>
         </div>
-        <canvas id="liveChart" height="120"></canvas>
+        <canvas id="liveChart"></canvas>
       </div>
     </div> <!-- end grid -->
 
-    <!-- Request Admin Access Section -->
-    <div class="tile" style="margin-top:20px;">
-      <h2><i class="fas fa-user-shield"></i> Admin Access</h2>
-      <p class="sub">Request admin privileges from an existing admin.</p>
-      <button id="requestAdminBtn" onclick="requestAdminAccess()">Request Admin Control</button>
-    </div>
-  </div> <!-- end container -->
-<script>
-  // --- Theme colors ---
-  const rootStyles = getComputedStyle(document.documentElement);
-  const textMutedColor = rootStyles.getPropertyValue('--text-muted').trim();
-  const textLightColor = rootStyles.getPropertyValue('--text-light').trim();
-  const accentColor = rootStyles.getPropertyValue('--accent').trim();
-  const lightGreenColor = rootStyles.getPropertyValue('--light-green').trim();
-  const accentRgb = rootStyles.getPropertyValue('--accent-rgb').trim();
-  const lightGreenRgb = rootStyles.getPropertyValue('--light-green-rgb').trim();
-  const gridColor = 'rgba(255, 255, 255, 0.1)';
+ <!-- Request Admin Access Section -->
+<div class="tile" style="margin-top:20px;">
+  <h2><i class="fas fa-user-shield"></i> Admin Access</h2>
+  <p class="sub">Request admin privileges from an existing admin.</p>
+  <button id="requestAdminBtn" onclick="requestAdminAccess()">Request Admin Control</button>
+</div>
 
-  // --- Chart.js global config + init ---
-  Chart.defaults.color = textMutedColor;
-  Chart.defaults.borderColor = gridColor;
+  <!-- External JS -->
+  <script src="dashboard.js"></script>
+<!-- Popup HTML -->
+<div id="popup" class="popup">
+  <div class="popup-content">
+    <p id="popup-message"> Welcome to the SmartWater Dashboard! Your system is live and ready to monitor with precision.</p>
+    <button onclick="closePopup()">Close</button>
+  </div>
+</div>
 
-  const liveChart = new Chart(document.getElementById('liveChart'), {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: 'Distance (cm)',
-          data: [],
-          borderColor: accentColor,
-          backgroundColor: `rgba(${accentRgb}, 0.15)`,
-          fill: true,
-          tension: 0.4,
-          pointRadius: 0,
-          yAxisID: 'yDistance'
-        },
-        {
-          label: 'Water Detected',
-          data: [],
-          borderColor: lightGreenColor,
-          backgroundColor: `rgba(${lightGreenRgb}, 0.15)`,
-          fill: true,
-          stepped: true,
-          pointRadius: 0,
-          yAxisID: 'yWater'
-        }
-      ]
-    },
-    options: {
-      plugins: { legend: { labels: { color: textLightColor } } },
-      scales: {
-        x: { ticks: { color: textMutedColor }, grid: { display: false } },
-        yDistance: { type: 'linear', position: 'left', ticks: { color: accentColor }, grid: { color: gridColor } },
-        yWater: {
-          type: 'linear',
-          position: 'right',
-          min: 0,
-          max: 1,
-          ticks: { stepSize: 1, color: lightGreenColor, callback: v => v === 1 ? 'Yes' : 'No' },
-          grid: { drawOnChartArea: false }
-        }
-      }
-    }
-  });
-
-  // --- DOM refs + state ---
-  const gaugeFg = document.getElementById('gauge-fg');
-  const gaugeText = document.getElementById('gauge-text');
-  const eventLog = document.getElementById('event-log');
-  const gaugeRadius = gaugeFg.r.baseVal.value;
-  const gaugeCircumference = 2 * Math.PI * gaugeRadius;
-
-  let liveDataInterval;
-  let currentFilter = 'live';
-  let isSystemOnline = true;
-  let previousState = {};
-
-  // Demo historical data (until backend endpoints are used)
-  const monthlyData = { labels: ['Week 1','Week 2','Week 3','Week 4'], distance:[25,30,22,28], water:[0,0,1,0] };
-  const sixMonthData = { labels: ['May','Jun','Jul','Aug','Sep','Oct'], distance:[35,40,38,42,30,25], water:[0,0,0,0,1,1] };
-
-  // --- UI helpers ---
-  function setBadge(el, text, cls) { el.className = 'badge ' + cls; el.textContent = text; }
-  function addLogEntry(message, type='neutral') {
-    const logEntry = document.createElement('div');
-    logEntry.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> <span class="event-${type}">${message}</span>`;
-    eventLog.prepend(logEntry);
-    if (eventLog.children.length > 20) eventLog.removeChild(eventLog.lastChild);
-  }
-  function updateGauge(distance) {
-    const MAX_DISTANCE = 50;
-    let percent = 100 - (Math.min(distance, MAX_DISTANCE) / MAX_DISTANCE * 100);
-    percent = Math.max(0, Math.min(100, percent));
-    gaugeFg.style.strokeDashoffset = gaugeCircumference - (percent / 100) * gaugeCircumference;
-    gaugeText.innerHTML = `${distance || 0}<small>cm</small>`;
-    if (distance <= 5) { gaugeFg.style.stroke='var(--bad)'; gaugeText.style.color='var(--bad)'; }
-    else if (distance <= 15) { gaugeFg.style.stroke='var(--warn)'; gaugeText.style.color='var(--warn)'; }
-    else { gaugeFg.style.stroke='var(--good)'; gaugeText.style.color='var(--text-light)'; }
-  }
-  // --- Data History ---
-  function displayHistoricalData(data) {
-    liveChart.data.labels = data.labels;
-    liveChart.data.datasets[0].data = data.distance;
-    liveChart.data.datasets[1].data = data.water;
-    liveChart.update();
-  }
-
-  function setFilter(filter) {
-    currentFilter = filter;
-    document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`btn-${filter}`).classList.add('active');
-    clearInterval(liveDataInterval);
-
-    liveChart.data.labels = [];
-    liveChart.data.datasets.forEach(dataset => dataset.data = []);
-    liveChart.update();
-
-    if (filter === 'live') {
-      fetchStatus();
-      liveDataInterval = setInterval(fetchStatus, 2000);
-    } else if (filter === 'month') {
-      displayHistoricalData(monthlyData);
-    } else if (filter === '6months') {
-      displayHistoricalData(sixMonthData);
-    }
-  }
-
-  // --- Fetch status from backend ---
-  async function fetchStatus(){
-    try {
-      const res = await fetch('/status');
-      if (!res.ok) throw new Error('Network error');
-      const payload = await res.json();
-      if (!payload.ok) throw new Error(payload.message || 'API error');
-
-      if (!isSystemOnline) { 
-        isSystemOnline = true; 
-        addLogEntry('Physical system connected.','good'); 
-      }
-
-      const { waterDetected, pumpState, buzzerState, distanceCM, manualOverride, lastUpdate, lastAlert } = payload.data;
-
-      if (previousState.waterDetected !== waterDetected) {
-        addLogEntry(`Water detection: ${waterDetected?'Yes':'No'}`, waterDetected?'bad':'good');
-      }
-      previousState = { waterDetected };
-
-      setBadge(document.getElementById('waterBadge'), waterDetected?'Yes':'No', waterDetected?'bad':'good');
-      setBadge(document.getElementById('pumpBadge'), pumpState?'On':'Off', pumpState?'good':'neutral');
-      setBadge(document.getElementById('buzzerBadge'), buzzerState?'On':'Off', buzzerState?'warn':'neutral');
-      setBadge(document.getElementById('modeBadge'), manualOverride?'Manual':'Auto', manualOverride?'warn':'good');
-      updateGauge(distanceCM);
-
-      document.getElementById('lastUpdate').textContent = "Last update: "+new Date(lastUpdate).toLocaleString();
-      const lastAlertEl = document.getElementById('lastAlertBadge');
-      if (lastAlert) { 
-        lastAlertEl.textContent = new Date(lastAlert).toLocaleString(); 
-        lastAlertEl.className='badge warn'; 
-      } else { 
-        lastAlertEl.textContent='None'; 
-        lastAlertEl.className='badge neutral'; 
-      }
-
-      if (currentFilter==='live') {
-        const ts = new Date().toLocaleTimeString();
-        liveChart.data.labels.push(ts);
-        liveChart.data.datasets[0].data.push(distanceCM||0);
-        liveChart.data.datasets[1].data.push(waterDetected?1:0);
-        if (liveChart.data.labels.length>30) {
-          liveChart.data.labels.shift();
-          liveChart.data.datasets[0].data.shift();
-          liveChart.data.datasets[1].data.shift();
-        }
-        liveChart.update('none');
-      }
-    } catch(e) {
-      console.error(e);
-      if (isSystemOnline) { 
-        isSystemOnline=false; 
-        addLogEntry('Physical system offline.','bad'); 
-      }
-      // ❌ No popup here — silent on refresh
-    }
-  }
-  // --- Custom Popup Helpers ---
-  function showPopup(message) {
-    document.getElementById("popup-message").textContent = message;
-    document.getElementById("popup").style.display = "flex";
-  }
-  function closePopup() {
-    document.getElementById("popup").style.display = "none";
-  }
-
-  // --- Admin request flow (simplified, no OTP) ---
-  async function requestAdminAccess() {
-    try {
-      const res = await fetch("/api/admins/request", {
-        method:"POST",
-        headers:{ 
-          "Content-Type":"application/json", 
-          Authorization:`Bearer ${localStorage.getItem("token")}` 
-        }
-      });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.message);
-      showPopup("Request sent to admin. Wait for approval.");
-    } catch(err) {
-      showPopup("Error: " + err.message);
-    }
-  }
-
-  // --- Logout ---
-  function logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    window.location.href="login.html";
-  }
-
-  // --- Init ---
-  document.addEventListener('DOMContentLoaded', () => {
-    addLogEntry('Dashboard Initialized.','good');
-    setFilter('live');
-  });
-async function fetchWeather() {
-  const apiKey = "f9fa3ee7c10e8bddd0235f9437dc81c7";
-  const lat = -29.8587;
-  const lon = 31.0218;
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
-
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    document.getElementById("weatherBox").innerHTML = `
-      <div class="status-item"><span>🌡 Temp</span><span>${data.main.temp} °C</span></div>
-      <div class="status-item"><span>💧 Humidity</span><span>${data.main.humidity}%</span></div>
-      <div class="status-item"><span>🌬 Wind</span><span>${data.wind.speed} m/s</span></div>
-      <div class="status-item"><span>☁ Condition</span><span>${data.weather[0].description}</span></div>
-    `;
-  } catch (err) {
-    console.error("Weather fetch failed", err);
-    document.getElementById("weatherBox").textContent = "Weather unavailable";
-  }
-}
-
-// Run once on load + refresh every 15 minutes
-document.addEventListener("DOMContentLoaded", () => {
-  fetchWeather();
-  setInterval(fetchWeather, 900000); // 15 min
-});
-
-</script>
-
-
+ 
 </body>
 </html>
-
