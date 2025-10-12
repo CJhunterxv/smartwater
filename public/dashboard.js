@@ -41,11 +41,16 @@ const liveChart = new Chart(document.getElementById('liveChart'), {
   },
   options: {
     responsive: true,
-    maintainAspectRatio: false,
+    maintainAspectRatio: false,   // ensures clarity on mobile
     plugins: { legend: { labels: { color: textLightColor } } },
     scales: {
       x: { ticks: { color: textMutedColor }, grid: { display: false } },
-      yDistance: { type: 'linear', position: 'left', ticks: { color: accentColor }, grid: { color: gridColor } },
+      yDistance: { 
+        type: 'linear', 
+        position: 'left', 
+        ticks: { color: accentColor }, 
+        grid: { color: gridColor } 
+      },
       yWater: {
         type: 'linear',
         position: 'right',
@@ -57,7 +62,6 @@ const liveChart = new Chart(document.getElementById('liveChart'), {
     }
   }
 });
-
 // --- DOM refs + state ---
 const gaugeFg = document.getElementById('gauge-fg');
 const gaugeText = document.getElementById('gauge-text');
@@ -71,8 +75,79 @@ let isSystemOnline = true;
 let previousState = {};
 
 // --- Demo historical data ---
-const monthlyData = { labels: ['Week 1','Week 2','Week 3','Week 4'], distance:[25,30,22,28], water:[0,0,1,0] };
-const sixMonthData = { labels: ['May','Jun','Jul','Aug','Sep','Oct'], distance:[35,40,38,42,30,25], water:[0,0,0,0,1,1] };
+const monthlyData = { 
+  labels: ['Week 1','Week 2','Week 3','Week 4'], 
+  distance:[25,30,22,28], 
+  water:[0,0,1,0] 
+};
+const sixMonthData = { 
+  labels: ['May','Jun','Jul','Aug','Sep','Oct'], 
+  distance:[35,40,38,42,30,25], 
+  water:[0,0,0,0,1,1] 
+};
+
+// --- UI helpers ---
+function setBadge(el, text, cls) { 
+  el.className = 'badge ' + cls; 
+  el.textContent = text; 
+}
+
+function addLogEntry(message, type='neutral') {
+  const logEntry = document.createElement('div');
+  logEntry.innerHTML = `<span class="time">[${new Date().toLocaleTimeString()}]</span> 
+                        <span class="event-${type}">${message}</span>`;
+  eventLog.prepend(logEntry);
+  if (eventLog.children.length > 20) eventLog.removeChild(eventLog.lastChild);
+}
+
+function updateGauge(distance) {
+  const MAX_DISTANCE = 50;
+  let percent = 100 - (Math.min(distance, MAX_DISTANCE) / MAX_DISTANCE * 100);
+  percent = Math.max(0, Math.min(100, percent));
+  gaugeFg.style.strokeDashoffset = gaugeCircumference - (percent / 100) * gaugeCircumference;
+  gaugeText.innerHTML = `${distance || 0}<small>cm</small>`;
+
+  if (distance <= 5) { 
+    gaugeFg.style.stroke='var(--bad)'; 
+    gaugeText.style.color='var(--bad)'; 
+  }
+  else if (distance <= 15) { 
+    gaugeFg.style.stroke='var(--warn)'; 
+    gaugeText.style.color='var(--warn)'; 
+  }
+  else { 
+    gaugeFg.style.stroke='var(--good)'; 
+    gaugeText.style.color='var(--text-light)'; 
+  }
+}
+
+// --- Data History ---
+function displayHistoricalData(data) {
+  liveChart.data.labels = data.labels;
+  liveChart.data.datasets[0].data = data.distance;
+  liveChart.data.datasets[1].data = data.water;
+  liveChart.update();
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`btn-${filter}`).classList.add('active');
+  clearInterval(liveDataInterval);
+
+  liveChart.data.labels = [];
+  liveChart.data.datasets.forEach(dataset => dataset.data = []);
+  liveChart.update();
+
+  if (filter === 'live') {
+    fetchStatus();
+    liveDataInterval = setInterval(fetchStatus, 2000);
+  } else if (filter === 'month') {
+    displayHistoricalData(monthlyData);
+  } else if (filter === '6months') {
+    displayHistoricalData(sixMonthData);
+  }
+}
 // --- Fetch status from backend ---
 async function fetchStatus(){
   try {
@@ -127,6 +202,7 @@ async function fetchStatus(){
       isSystemOnline=false; 
       addLogEntry('Physical system offline.','bad'); 
     }
+    // Silent fail — no popup here
   }
 }
 
@@ -138,7 +214,6 @@ function showPopup(message) {
 function closePopup() {
   document.getElementById("popup").style.display = "none";
 }
-
 // --- Admin request flow (simplified, no OTP) ---
 async function requestAdminAccess() {
   try {
@@ -163,10 +238,11 @@ function logout() {
   localStorage.removeItem('role');
   window.location.href="login.html";
 }
+
 // --- Weather Fetch ---
 async function fetchWeather() {
   const apiKey = "f9fa3ee7c10e8bddd0235f9437dc81c7"; // your OpenWeather key
-  const lat = -29.8587; // Durban
+  const lat = -29.8587;
   const lon = 31.0218;
   const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
 
@@ -191,11 +267,4 @@ document.addEventListener('DOMContentLoaded', () => {
   setFilter('live');
   fetchWeather();
   setInterval(fetchWeather, 900000); // refresh every 15 min
-
-  // Show admin request section only if not admin and not already requested
-  const role = localStorage.getItem("role");
-  if (role !== "admin" && !localStorage.getItem("adminRequested")) {
-    const section = document.getElementById("adminRequestSection");
-    if (section) section.style.display = "block";
-  }
 });
