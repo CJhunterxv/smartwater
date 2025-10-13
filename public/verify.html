@@ -273,6 +273,21 @@
         const verifyBtn = document.getElementById("verifyBtn");
         const otpGroup = document.getElementById("otp-group");
         const messageEl = document.getElementById("message");
+// Check if email is passed in query string
+const params = new URLSearchParams(window.location.search);
+const prefilledEmail = params.get("email");
+
+if (prefilledEmail) {
+  emailInput.value = prefilledEmail;
+  emailInput.disabled = true;
+  sendOtpBtn.style.display = "none";   // hide "Send OTP"
+  resendOtpBtn.style.display = "block";
+  otpGroup.style.display = "block";
+  verifyBtn.style.display = "block";
+  otpInput.focus();
+}
+
+
 
         sendOtpBtn.addEventListener("click", sendOtp);
         resendOtpBtn.addEventListener("click", sendOtp);

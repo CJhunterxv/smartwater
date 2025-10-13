@@ -367,7 +367,7 @@
                     messageBox.style.color = "var(--success-green)";
                     messageBox.innerText = data.message || "✅ Success! Check email to verify.";
                     setTimeout(() => {
-                        window.location.href = '/verify';
+                        window.location.href = `/verify.html?email=${encodeURIComponent(email)}`;
                     }, 2000);
                 } else {
                     if (data.message && data.message.includes('User already exists')) {
