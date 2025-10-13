@@ -3,18 +3,17 @@ import nodemailer from "nodemailer";
 // Function to send OTP email
 export const sendOTPEmail = async (to, otp) => {
   try {
-    // Create transporter using Gmail + App Password
+    // ✅ Unified transporter using GMAIL_USER + GMAIL_APP_PASSWORD
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER,   // your Gmail address
-        pass: process.env.EMAIL_PASS    // your Gmail App Password
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
       },
     });
 
-    // Email details
     const mailOptions = {
-      from: `"SmartWater Alerts" <${process.env.EMAIL_USER}>`,
+      from: `"SmartWater Alerts" <${process.env.GMAIL_USER}>`,
       to,
       subject: "SmartWater Email Verification",
       text: `Your OTP code is: ${otp}. It will expire in 5 minutes.`,
@@ -25,10 +24,9 @@ export const sendOTPEmail = async (to, otp) => {
           <h1 style="color: #2e86de;">${otp}</h1>
           <p>This code will expire in <b>5 minutes</b>.</p>
         </div>
-      `
+      `,
     };
 
-    // Send email
     await transporter.sendMail(mailOptions);
     console.log(`✅ OTP email sent to ${to}`);
   } catch (err) {
