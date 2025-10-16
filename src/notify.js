@@ -5,12 +5,12 @@ import User from "./models/User.js"; // Access MongoDB users
 
 dotenv.config();
 
-// === Email Transport ===
+// === Email Transport (Unified with OTP) ===
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.GMAIL_USER,          // same as OTP
+    pass: process.env.GMAIL_APP_PASSWORD,  // same as OTP
   },
 });
 
@@ -20,7 +20,7 @@ export async function sendEmailAlert(subject, message) {
     const users = await User.find({ isVerified: true }, "email");
     for (const user of users) {
       await transporter.sendMail({
-        from: `"SmartWater Alerts" <${process.env.EMAIL_USER}>`,
+        from: `"SmartWater Alerts" <${process.env.GMAIL_USER}>`,
         to: user.email,
         subject,
         text: message,
@@ -28,7 +28,7 @@ export async function sendEmailAlert(subject, message) {
       console.log(`✅ Email sent to ${user.email}`);
     }
   } catch (err) {
-    console.error("❌ Email alert failed:", err.message);
+    console.error("❌ Email alert failed:", err);
   }
 }
 
@@ -52,6 +52,6 @@ export async function sendSMSAlert(message) {
       console.log(`✅ SMS sent to ${user.phone}`);
     }
   } catch (err) {
-    console.error("❌ SMS alert failed:", err.message);
+    console.error("❌ SMS alert failed:", err);
   }
 }
