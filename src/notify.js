@@ -1,47 +1,56 @@
 import nodemailer from "nodemailer";
 import twilio from "twilio";
 import dotenv from "dotenv";
+import User from "./models/User.js"; // Access MongoDB users
 
 dotenv.config();
 
 // === Email Transport ===
 const transporter = nodemailer.createTransport({
-  service: "gmail", // you can change to "outlook" or another provider if needed
+  service: "gmail",
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // must be an App Password for Gmail
+    pass: process.env.EMAIL_PASS,
   },
 });
 
-// === Send Email Alert ===
+// === Send Email Alert to All Verified Users ===
 export async function sendEmailAlert(subject, message) {
   try {
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.ALERT_EMAIL,
-      subject,
-      text: message,
-    });
-    console.log("✅ Email alert sent");
+    const users = await User.find({ isVerified: true }, "email");
+    for (const user of users) {
+      await transporter.sendMail({
+        from: `"SmartWater Alerts" <${process.env.EMAIL_USER}>`,
+        to: user.email,
+        subject,
+        text: message,
+      });
+      console.log(`✅ Email sent to ${user.email}`);
+    }
   } catch (err) {
     console.error("❌ Email alert failed:", err.message);
   }
 }
 
-// === Send SMS Alert (Twilio) ===
+// === Twilio Client ===
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
 
+// === Send SMS Alert to All Verified Users ===
 export async function sendSMSAlert(message) {
   try {
-    const sms = await client.messages.create({
-      body: message,
-      from: process.env.TWILIO_PHONE_NUMBER, // your Twilio trial number
-      to: process.env.ALERT_PHONE,           // your verified phone number
-    });
-    console.log("✅ SMS sent, SID:", sms.sid);
+    const users = await User.find({ isVerified: true }, "phone");
+    for (const user of users) {
+      if (!user.phone) continue;
+      await client.messages.create({
+        body: message,
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: user.phone,
+      });
+      console.log(`✅ SMS sent to ${user.phone}`);
+    }
   } catch (err) {
     console.error("❌ SMS alert failed:", err.message);
   }
