@@ -14,6 +14,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Helper: get local timestamp (Durban time)
+function getLocalTimestamp() {
+  return new Date().toLocaleString("en-ZA", { timeZone: "Africa/Johannesburg" });
+}
+
 // === Send Email Alert to All Verified Users ===
 export async function sendEmailAlert(subject, message) {
   try {
@@ -23,7 +28,7 @@ export async function sendEmailAlert(subject, message) {
         from: `"SmartWater Alerts" <${process.env.GMAIL_USER}>`,
         to: user.email,
         subject,
-        text: message,
+        text: `${message}\n\nTime: ${getLocalTimestamp()}`,
       });
       console.log(`✅ Email sent to ${user.email}`);
     }
@@ -45,7 +50,7 @@ export async function sendSMSAlert(message) {
     for (const user of users) {
       if (!user.phone) continue;
       await client.messages.create({
-        body: message,
+        body: `${message}\nTime: ${getLocalTimestamp()}`,
         from: process.env.TWILIO_PHONE_NUMBER,
         to: user.phone,
       });
