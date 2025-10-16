@@ -322,14 +322,12 @@ app.get("/status", async (req, res) => {
     // Push to in-memory logs
     logs.push({ timestamp, pumpState, buzzerState, waterDetected, distanceCM });
 
-  // === ALERT LOGIC ===
 if (waterDetected) {
-  const alertMsg = `⚠️ SmartWater Alert: WATER SENSOR TRIGGERED at ${timestamp}`;
+  const alertMsg = `⚠️ SmartWater Alert: Water detected at ${timestamp}, distance=${distanceCM}cm`;
   await sendEmailAlert("SmartWater Alert", alertMsg).catch(console.error);
   await sendSMSAlert(alertMsg).catch(console.error);
   lastAlert = timestamp;
 }
-
 
     res.json({
       ok: true,
